@@ -1,11 +1,16 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(req, res) {
   const slug = req.url.replace(/^\//, "").split("?")[0];
-
   if (!slug || slug === "favicon.ico") return res.status(404).end();
 
-  const card = await kv.get(`card:${slug}`);
+  const raw = await redis.get(`card:${slug}`);
+  const card = typeof raw === "string" ? JSON.parse(raw) : raw;
 
   if (!card) {
     return res.status(404).send(`<!DOCTYPE html><html><body><h2>カードが見つかりません</h2></body></html>`);
@@ -26,28 +31,11 @@ export default async function handler(req, res) {
     ? `<div class="card-site"><span class="site-dot"></span>${safeSite}</div>`
     : "";
 
-  const styleA = `
-    .card { display:flex; flex-direction:row; height:120px; }
-    .card-img { width:140px; flex-shrink:0; object-fit:cover; height:100%; }
-    .card-body { flex:1; display:flex; flex-direction:column; justify-content:center; gap:4px; }
-  `;
-  const styleB = `
-    .card { display:flex; flex-direction:column; }
-    .card-img { width:100%; height:200px; object-fit:cover; }
-    .card-body { padding:14px 16px; }
-  `;
-  const styleC = `
-    .card { position:relative; height:200px; }
-    .card-img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; }
-    .card-overlay { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(0,0,0,.75)); padding:32px 16px 16px; }
-    .card-title { color:#fff !important; }
-    .card-desc  { color:rgba(255,255,255,.82) !important; }
-    .card-site  { color:rgba(255,255,255,.6) !important; }
-    .site-dot   { background:rgba(255,255,255,.6) !important; }
-  `;
+  const styleA = `.card{display:flex;flex-direction:row;height:120px}.card-img{width:140px;flex-shrink:0;object-fit:cover;height:100%}.card-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px}`;
+  const styleB = `.card{display:flex;flex-direction:column}.card-img{width:100%;height:200px;object-fit:cover}.card-body{padding:14px 16px}`;
+  const styleC = `.card{position:relative;height:200px}.card-img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}.card-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));padding:32px 16px 16px}.card-title{color:#fff!important}.card-desc{color:rgba(255,255,255,.82)!important}.card-site{color:rgba(255,255,255,.6)!important}.site-dot{background:rgba(255,255,255,.6)!important}`;
 
-  const cardStyleMap = { a: styleA, b: styleB, c: styleC };
-  const chosenStyle = cardStyleMap[style] || styleA;
+  const chosenStyle = { a: styleA, b: styleB, c: styleC }[style] || styleA;
 
   const bodyContent = style === "c"
     ? `${imgTag}<div class="card-overlay"><div class="card-title">${safeTitle}</div><div class="card-desc">${safeDesc}</div>${siteHtml}</div>`
@@ -56,25 +44,25 @@ export default async function handler(req, res) {
   const html = `<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${safeTitle}</title>
-  <meta property="og:title"       content="${safeTitle}" />
-  <meta property="og:description" content="${safeDesc}" />
-  <meta property="og:image"       content="${safeImg}" />
-  <meta property="og:url"         content="${safeUrl}" />
-  <meta property="og:type"        content="website" />
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="${safeTitle}" />
-  <meta name="twitter:description" content="${safeDesc}" />
-  <meta name="twitter:image"       content="${safeImg}" />
-  <meta http-equiv="refresh" content="0;url=${safeUrl}" />
+  <meta property="og:title" content="${safeTitle}"/>
+  <meta property="og:description" content="${safeDesc}"/>
+  <meta property="og:image" content="${safeImg}"/>
+  <meta property="og:url" content="${safeUrl}"/>
+  <meta property="og:type" content="website"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="${safeTitle}"/>
+  <meta name="twitter:description" content="${safeDesc}"/>
+  <meta name="twitter:image" content="${safeImg}"/>
+  <meta http-equiv="refresh" content="0;url=${safeUrl}"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-    a.card{display:block;max-width:500px;width:100%;overflow:hidden;border-radius:12px;text-decoration:none;background:#fff;border:1px solid #e5e5e5;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-    .card-img{background:${color}22}
-    .no-img{height:140px}
+    a.card{display:block;max-width:500px;width:100%;overflow:hidden;border-radius:12px;text-decoration:none;background:#fff;border:1px solid #e5e5e5;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:transform .2s,box-shadow .2s}
+    a.card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.16)}
+    .card-img{background:${color}22}.no-img{height:140px}
     .card-body{padding:14px 16px}
     .card-title{font-size:14px;font-weight:600;line-height:1.3;color:#1a1a1a}
     .card-desc{font-size:12px;line-height:1.4;color:#666;margin-top:3px}
