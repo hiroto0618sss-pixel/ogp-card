@@ -1,4 +1,9 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 function randomSlug(len = 6) {
   const chars = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -19,15 +24,15 @@ export default async function handler(req, res) {
   let slug;
   for (let i = 0; i < 5; i++) {
     slug = randomSlug();
-    const exists = await kv.get(`card:${slug}`);
+    const exists = await redis.get(`card:${slug}`);
     if (!exists) break;
   }
 
-  await kv.set(`card:${slug}`, { title, description, image, url, site, style, color }, { ex: 60 * 60 * 24 * 365 });
+  await redis.set(`card:${slug}`, JSON.stringify({ title, description, image, url, site, style, color }), { ex: 60 * 60 * 24 * 365 });
 
   const host = req.headers.host;
   const proto = host.includes("localhost") ? "http" : "https";
   const cardUrl = `${proto}://${host}/${slug}`;
 
   return res.status(200).json({ slug, cardUrl });
-    }
+}
