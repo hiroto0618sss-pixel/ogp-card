@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OGP Card Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f9f9f7; --surface: #ffffff; --border: #e8e8e4;
+      --border2: #d0d0cc; --text: #1a1a18; --text2: #666660;
+      --text3: #aaa; --accent: #0F6E56; --radius: 10px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0 0 60px; }
+    header { border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; align-items: center; gap: 10px; background: var(--surface); }
+    header .logo { width: 28px; height: 28px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; }
+    header h1 { font-size: 15px; font-weight: 600; }
+    header span { font-size: 12px; color: var(--text2); margin-left: 4px; }
+    .container { max-width: 840px; margin: 0 auto; padding: 32px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 640px) { .container { grid-template-columns: 1fr; } }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+    .panel-title { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text3); margin-bottom: 16px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+    .field input, .field textarea { width: 100%; font-family: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; outline: none; transition: border-color .15s; }
+    .field input:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+    .style-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .stab { font-size: 12px; padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
+    .stab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .color-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .chip { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform .1s, border-color .15s; }
+    .chip:hover { transform: scale(1.12); }
+    .chip.active { border-color: var(--text); }
+    .gen-btn { width: 100%; padding: 12px; font-family: inherit; font-size: 14px; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 10px; cursor: pointer; transition: opacity .15s, transform .1s; margin-top: 4px; }
+    .gen-btn:hover { opacity: .88; }
+    .gen-btn:active { transform: scale(.98); }
+    .gen-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .preview-bg { background: var(--bg); border: 1px dashed var(--border2); border-radius: 10px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 160px; margin-bottom: 16px; }
+    .card-wrap { width: 100%; max-width: 420px; overflow: hidden; border-radius: 12px; text-decoration: none; background: #fff; border: 1px solid #e5e5e5; box-shadow: 0 2px 8px rgba(0,0,0,.1); transition: transform .2s, box-shadow .2s; display: block; cursor: pointer; }
+    .card-wrap:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.16); }
+    .card-a { display: flex; flex-direction: row; height: 110px; }
+    .card-a .ci { width: 130px; flex-shrink: 0; object-fit: cover; height: 100%; }
+    .card-a .cb { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+    .card-b { display: flex; flex-direction: column; }
+    .card-b .ci { width: 100%; height: 180px; object-fit: cover; }
+    .card-b .cb { padding: 12px 14px; }
+    .card-c { position: relative; height: 180px; }
+    .card-c .ci { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+    .card-c .ov { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,.75)); padding: 28px 14px 14px; }
+    .ct { font-size: 13px; font-weight: 600; line-height: 1.3; color: #1a1a1a; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .cd { font-size: 11px; line-height: 1.4; color: #666; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .cs { font-size: 11px; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+    .cdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .no-img-div { display: flex; align-items: center; justify-content: center; }
+    .no-img-label { font-size: 10px; opacity: .4; }
+    .result-box { display: none; background: #f0faf6; border: 1px solid #b2e0d0; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+    .result-box.show { display: block; }
+    .result-label { font-size: 11px; color: #0F6E56; font-weight: 600; margin-bottom: 6px; }
+    .result-url { font-size: 13px; word-break: break-all; color: #0F6E56; font-weight: 500; }
+    .copy-url-btn { margin-top: 10px; width: 100%; padding: 9px; font-family: inherit; font-size: 13px; font-weight: 500; background: #0F6E56; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: opacity .15s; }
+    .copy-url-btn:hover { opacity: .85; }
+    .error-box { display: none; background: #fff0f0; border: 1px solid #f5bcbc; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #c00; margin-bottom: 12px; }
+    .error-box.show { display: block; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">C</div>
+  <h1>OGP Card Generator</h1>
+  <span>Xで綺麗なリンクカードを表示</span>
+</header>
+<div class="container">
+  <div class="panel">
+    <div class="panel-title">カード設定</div>
+    <div class="field"><label>タイトル <span style="color:#c00">*</span></label><input id="inp-title" type="text" placeholder="記事タイトルを入力" /></div>
+    <div class="field"><label>説明文</label><textarea id="inp-desc" placeholder="記事の簡単な説明（省略可）"></textarea></div>
+    <div class="field"><label>リンク先URL <span style="color:#c00">*</span></label><input id="inp-url" type="text" placeholder="https://..." /></div>
+    <div class="field"><label>OGP画像URL</label><input id="inp-img" type="text" placeholder="https://... （1200x630px推奨）" /></div>
+    <div class="field"><label>サイト名</label><input id="inp-site" type="text" placeholder="ブログ名など（省略可）" /></div>
+    <div style="margin-bottom:6px;font-size:12px;color:var(--text2)">カードスタイル</div>
+    <div class="style-tabs">
+      <button class="stab active" data-s="a" onclick="setStyle('a')">横並び</button>
+      <button class="stab" data-s="b" onclick="setStyle('b')">縦積み</button>
+      <button class="stab" data-s="c" onclick="setStyle('c')">オーバーレイ</button>
+    </div>
+    <div style="margin-bottom:6px;font-size:12px;color:var(--text2)">アクセントカラー</div>
+    <div class="color-row" id="chips"></div>
+    <button class="gen-btn" id="gen-btn" onclick="generate()">URLを発行する</button>
+  </div>
+  <div class="panel">
+    <div class="panel-title">プレビュー</div>
+    <div class="preview-bg"><div id="preview"></div></div>
+    <div class="error-box" id="error-box"></div>
+    <div class="result-box" id="result-box">
+      <div class="result-label">✓ カードURLが発行されました</div>
+      <div class="result-url" id="result-url"></div>
+      <button class="copy-url-btn" onclick="copyUrl()">URLをコピー</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.6">発行したURLをXのポスト・リプに貼るだけで、設定した画像・タイトルでカード表示されます。</div>
+  </div>
+</div>
+<script>
+const COLORS=[{hex:'#0F6E56'},{hex:'#185FA5'},{hex:'#534AB7'},{hex:'#993C1D'},{hex:'#993556'},{hex:'#854F0B'},{hex:'#5F5E5A'}];
+let curStyle='a',curColor=COLORS[0];
+const v=()=>({title:document.getElementById('inp-title').value.trim(),desc:document.getElementById('inp-desc').value.trim(),url:document.getElementById('inp-url').value.trim(),img:document.getElementById('inp-img').value.trim(),site:document.getElementById('inp-site').value.trim()});
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderPreview(){
+  const d=v(),c=curColor.hex;
+  const imgEl=d.img?'<img class="ci" src="'+d.img+'" alt="" onerror="this.style.background=''+c+'22'" />':'<div class="ci no-img-div" style="background:'+c+'18"><span class="no-img-label">No Image</span></div>';
+  const siteEl=d.site?'<div class="cs" style="color:'+c+'"><span class="cdot" style="background:'+c+'"></span>'+esc(d.site)+'</div>':'';
+  const tc=curStyle==='c'?'#fff':'#1a1a1a',dc=curStyle==='c'?'rgba(255,255,255,.82)':'#666';
+  let inner='';
+  if(curStyle==='a') inner='<div class="card-a">'+imgEl+'<div class="cb"><div class="ct" style="color:'+tc+'">'+esc(d.title||'タイトル')+'</div><div class="cd" style="color:'+dc+'">'+esc(d.desc)+'</div>'+siteEl+'</div></div>';
+  else if(curStyle==='b') inner='<div class="card-b">'+imgEl+'<div class="cb"><div class="ct" style="color:'+tc+'">'+esc(d.title||'タイトル')+'</div><div class="cd" style="color:'+dc+'">'+esc(d.desc)+'</div>'+siteEl+'</div></div>';
+  else{const sC=d.site?'<div class="cs" style="color:rgba(255,255,255,.6)"><span class="cdot" style="background:rgba(255,255,255,.6)"></span>'+esc(d.site)+'</div>':'';inner='<div class="card-c">'+imgEl+'<div class="ov"><div class="ct" style="color:#fff">'+esc(d.title||'タイトル')+'</div><div class="cd" style="color:rgba(255,255,255,.82)">'+esc(d.desc)+'</div>'+sC+'</div></div>';}
+  document.getElementById('preview').innerHTML='<div class="card-wrap">'+inner+'</div>';
+}
+function setStyle(s){curStyle=s;document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',t.dataset.s===s));renderPreview();}
+function buildChips(){const row=document.getElementById('chips');COLORS.forEach((c,i)=>{const el=document.createElement('div');el.className='chip'+(i===0?' active':'');el.style.background=c.hex;el.onclick=()=>{curColor=c;document.querySelectorAll('.chip').forEach((x,j)=>x.classList.toggle('active',j===i));renderPreview();};row.appendChild(el);});}
+async function generate(){
+  const d=v();const errBox=document.getElementById('error-box');errBox.className='error-box';
+  if(!d.title){errBox.textContent='タイトルを入力してください';errBox.className='error-box show';return;}
+  if(!d.url){errBox.textContent='リンク先URLを入力してください';errBox.className='error-box show';return;}
+  const btn=document.getElementById('gen-btn');btn.disabled=true;btn.textContent='発行中…';
+  try{
+    const res=await fetch('/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...d,style:curStyle,color:curColor.hex})});
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.error||'エラーが発生しました');
+    document.getElementById('result-url').textContent=json.cardUrl;
+    document.getElementById('result-box').className='result-box show';
+    document.getElementById('error-box').className='error-box';
+  }catch(e){errBox.textContent=e.message;errBox.className='error-box show';}
+  finally{btn.disabled=false;btn.textContent='URLを発行する';}
+}
+function copyUrl(){const url=document.getElementById('result-url').textContent;navigator.clipboard.writeText(url).then(()=>{const btn=document.querySelector('.copy-url-btn');btn.textContent='コピーしました！';setTimeout(()=>btn.textContent='URLをコピー',1500);});}
+document.querySelectorAll('#inp-title,#inp-desc,#inp-url,#inp-img,#inp-site').forEach(el=>el.addEventListener('input',renderPreview));
+buildChips();renderPreview();
+</script>
+</body>
+</html>
